@@ -30,7 +30,7 @@
   .back svg{width:12px; height:12px;}
   .toolbar{display:flex; gap:16px; padding:2px 2px 10px; flex-wrap:wrap;}
   .tbtn{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; background:none; color:var(--muted); padding:2px;}
-  .tbtn:hover{color:var(--text);}
+  .tbtn:hover{color:var(--amber);}
   .tbtn svg{width:13px; height:13px;}
   .error{display:none; align-items:center; gap:8px; background:#3a1c14; color:#ffb4a0; font-size:13px; border-radius:3px; padding:10px 13px; margin:0 2px 12px;}
   .error svg{flex-shrink:0;}
@@ -40,11 +40,23 @@
     background:var(--panel); border-left:5px solid var(--accent); border-radius:3px;
     padding:22px 20px; text-align:left; transition:background .15s;
   }
-  .option:hover{background:#242422;}
+  .option:hover{background:#2c2b26;}
   .option svg{width:30px; height:30px; color:var(--accent); flex-shrink:0;}
   .option-text{display:flex; flex-direction:column; gap:4px;}
   .option-title{font-weight:800; font-size:17px;}
   .option-desc{font-size:12.5px; color:var(--muted2);}
+  .option.primary{padding:30px 22px; gap:20px; box-shadow:inset 0 0 0 1px #4a483e;}
+  .option.primary svg{width:38px; height:38px;}
+  .option.primary .option-title{font-size:21px;}
+  .option.primary .option-desc{font-size:13px; color:var(--muted);}
+  .option.primary .option-formats{font-size:11px; color:var(--muted2); font-family:ui-monospace,Menlo,Consolas,monospace; letter-spacing:.02em; margin-top:2px;}
+  .option.primary:hover{background:#2c2b26; box-shadow:inset 0 0 0 1px var(--amber);}
+  .option.mini{margin-top:26px; padding:12px 14px; gap:11px; background:transparent; border-left-width:3px;}
+  .option.mini svg{width:17px; height:17px;}
+  .option.mini .option-title{font-size:13.5px; font-weight:700; color:var(--muted);}
+  .option.mini .option-desc{font-size:11px;}
+  .option.mini:hover{background:#232220;}
+  .option.mini:hover .option-title{color:var(--text);}
   input[type=file]{display:none;}
   .panel{display:none; flex-direction:column;}
   .panel.active{display:flex;}
@@ -57,14 +69,16 @@
   .statustext{font-size:15px; font-weight:700; font-family:ui-monospace,Menlo,Consolas,monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
   .kindtag{flex-shrink:0; font-size:10px; font-weight:800; letter-spacing:.04em; padding:3px 6px; border-radius:3px; background:var(--border); color:var(--muted); display:none;}
   .transport-actions{display:flex; gap:8px; flex-shrink:0;}
-  .sbtn{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--text); background:var(--panel); border-radius:3px; padding:8px 13px;}
-  .sbtn:hover{background:#949593;}
+  .sbtn{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--text); background:#2c2b26; border:none; border-radius:3px; padding:8px 13px; box-shadow:inset 0 0 0 1px #4a483e; transition:background .12s, box-shadow .12s, color .12s;}
+  .sbtn:hover{background:#413e34; color:#fff; box-shadow:inset 0 0 0 1px var(--amber);}
+  .sbtn:active{background:#4c483b;}
   .sbtn svg{width:13px; height:13px;}
   .video-wrap{display:none; margin:0 2px 4px; background:#000; border-radius:3px; overflow:hidden;}
   .video-wrap video{display:block; width:100%; max-height:46vh; background:#000;}
   .seek-row{display:none; align-items:center; gap:9px;}
-  .skip-btn{flex-shrink:0; display:flex; align-items:center; gap:3px; font-size:11px; font-weight:700; color:var(--text); background:var(--panel); border-radius:3px; padding:7px 9px;}
-  .skip-btn:hover{background:#949593;}
+  .skip-btn{flex-shrink:0; display:flex; align-items:center; gap:3px; font-size:11px; font-weight:700; color:var(--text); background:#2c2b26; border:none; border-radius:3px; padding:7px 9px; box-shadow:inset 0 0 0 1px #4a483e; transition:background .12s, box-shadow .12s, color .12s;}
+  .skip-btn:hover{background:#413e34; color:#fff; box-shadow:inset 0 0 0 1px var(--amber);}
+  .skip-btn:active{background:#4c483b;}
   .skip-btn svg{width:12px; height:12px;}
   .led{color:var(--led); text-shadow:0 0 5px rgba(143,240,164,.4); font-family:ui-monospace,Menlo,Consolas,monospace;}
   .time-text{font-size:15px; font-weight:700; flex-shrink:0; min-width:38px; text-align:center;}
@@ -104,7 +118,7 @@
   .band-tag{position:absolute; top:-2px; font-size:10px; font-weight:800; font-family:ui-monospace,Menlo,Consolas,monospace; color:#111; background:var(--accent); padding:2px 5px; border-radius:3px; white-space:nowrap; transform:translateY(-100%);}
   .band-tag.low{left:-12px;} .band-tag.high{right:-12px; left:auto;}
   .add-band-btn{width:100%; margin-top:12px; padding:11px; border-radius:3px; border:none; background:var(--panel); color:var(--muted); font-size:12.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;}
-  .add-band-btn:hover{color:var(--text); background:#242422;}
+  .add-band-btn:hover{color:#fff; background:#413e34; box-shadow:inset 0 0 0 1px var(--amber);}
   .add-band-btn svg{width:13px; height:13px;}
   .mic-note{display:none; background:#231f16; border-left:3px solid var(--amber); color:var(--muted); border-radius:3px; padding:9px 11px; margin:8px 2px 0; line-height:1.5;}
   .empty-hint{font-size:12px; color:var(--muted2); text-align:center; padding:18px 8px;}
@@ -135,21 +149,22 @@
     <span id="errorText"></span>
   </div>
   <div class="picker" id="picker">
-    <button class="option" id="micCard" style="--accent:#5be8c9;">
+    <label class="option btn primary" id="fileCard" for="fileInput" style="--accent:var(--amber);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      <span class="option-text">
+        <span class="option-title">音声・動画をアップロード</span>
+        <span class="option-desc">録音済み音源やライブ動画を帯域ごとに分解</span>
+        <span class="option-formats">mp3 / wav / m4a / flac / mp4 / mov / webm ほか</span>
+      </span>
+    </label>
+    <input type="file" id="fileInput" accept="audio/*,video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi,.mp3,.wav,.m4a,.aac,.flac,.ogg">
+    <button class="option mini" id="micCard" style="--accent:#5be8c9;">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
       <span class="option-text">
         <span class="option-title">マイクで録音</span>
         <span class="option-desc">その場で演奏を解析（帯域ごとのON/OFFは使えません）</span>
       </span>
     </button>
-    <label class="option btn" id="fileCard" for="fileInput" style="--accent:var(--amber);">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
-      <span class="option-text">
-        <span class="option-title">音声・動画をアップロード</span>
-        <span class="option-desc">録音済み音源やライブ動画を解析（mp3 / wav / m4a / mp4 / mov / webm など）</span>
-      </span>
-    </label>
-    <input type="file" id="fileInput" accept="audio/*,video/*,.mp4,.mov,.m4v,.webm,.mkv,.avi,.mp3,.wav,.m4a,.aac,.flac,.ogg">
   </div>
   <div class="panel" id="panel">
     <div class="blk transport">
