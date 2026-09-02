@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SPECTRA</title>
+<style>
+  :root{
+    --gutter:0px;
+    --bg:#141414; --panel:#201f1c; --border:#37362f;
+    --text:#f5f3ee; --muted:#cac6b9; --muted2:#95917f;
+    --led:#8ff0a4; --amber:#ffb020;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;}
+  body{
+    background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
+    font-size:14px; line-height:1.45;
+    padding:8px 10px 40px;
+  }
+  .app{max-width:960px; margin:0 auto;}
+  button, label.btn{font-family:inherit; cursor:pointer;}
+  button:focus-visible, label.btn:focus-within, input:focus-visible{outline:2px solid var(--amber); outline-offset:1px;}
+  input[type=number]{font-family:inherit;}
+
+  .header{display:flex; align-items:center; justify-content:space-between; padding:4px 2px;}
+  h1{font-size:13px; font-weight:700; letter-spacing:.04em; margin:0; color:var(--muted2);}
+  .back{display:none; align-items:center; gap:4px; font-size:12px; color:var(--muted); background:none; padding:4px;}
+  .back:hover{color:var(--text);}
+  .back svg{width:12px; height:12px;}
+
+  .toolbar{display:flex; gap:16px; padding:2px 2px 10px; flex-wrap:wrap;}
+  .tbtn{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; background:none; color:var(--muted); padding:2px;}
+  .tbtn:hover{color:var(--text);}
+  .tbtn svg{width:13px; height:13px;}
+
+  .error{display:none; align-items:center; gap:8px; background:#3a1c14; color:#ffb4a0; font-size:13px; border-radius:3px; padding:10px 13px; margin:0 2px 12px;}
+  .error svg{flex-shrink:0;}
+
+  .picker{display:none; flex-direction:column; gap:10px; padding:8px 2px;}
+  .option{
+    display:flex; align-items:center; gap:16px; width:100%;
+    background:var(--panel); border-left:5px solid var(--accent); border-radius:3px;
+    padding:22px 20px; text-align:left; transition:background .15s;
+  }
+  .option:hover{background:#242422;}
+  .option svg{width:30px; height:30px; color:var(--accent); flex-shrink:0;}
+  .option-text{display:flex; flex-direction:column; gap:4px;}
+  .option-title{font-weight:800; font-size:17px;}
+  .option-desc{font-size:12.5px; color:var(--muted2);}
+  input[type=file]{display:none;}
+
+  .panel{display:none; flex-direction:column;}
+  .panel.active{display:flex;}
+  .blk{padding:10px 2px;}
+
+  .transport{display:flex; align-items:center; justify-content:space-between; gap:10px;}
+  .status{display:flex; align-items:center; gap:8px; min-width:0;}
+  .dot{width:8px; height:8px; border-radius:50%; background:#3a3a36; flex-shrink:0;}
+  .dot.live{background:#ff6b4a; animation:pulse 1.2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:.3;}}
+  .statustext{font-size:15px; font-weight:700; font-family:ui-monospace,Menlo,Consolas,monospace; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+  .transport-actions{display:flex; gap:8px; flex-shrink:0;}
+  .sbtn{display:flex; align-items:center; gap:6px; font-size:12px; font-weight:700; color:var(--text); background:var(--panel); border-radius:3px; padding:8px 13px;}
+  .sbtn:hover{background:#242422;}
+  .sbtn svg{width:13px; height:13px;}
+
+  .seek-row{display:none; align-items:center; gap:9px;}
+  .skip-btn{flex-shrink:0; display:flex; align-items:center; gap:3px; font-size:11px; font-weight:700; color:var(--text); background:var(--panel); border-radius:3px; padding:7px 9px;}
+  .skip-btn:hover{background:#242422;}
+  .skip-btn svg{width:12px; height:12px;}
+  .led{color:var(--led); text-shadow:0 0 5px rgba(143,240,164,.4); font-family:ui-monospace,Menlo,Consolas,monospace;}
+  .time-text{font-size:15px; font-weight:700; flex-shrink:0; min-width:38px; text-align:center;}
+  .seekbar{position:relative; flex:1; height:20px; display:flex; align-items:center; cursor:pointer; touch-action:none;}
+  .seekbar::before{content:''; position:absolute; left:0; right:0; height:5px; background:var(--border); border-radius:99px;}
+  .seekfill{position:absolute; left:0; height:5px; background:var(--amber); border-radius:99px; width:0%; pointer-events:none;}
+  .seekhandle{position:absolute; width:12px; height:12px; border-radius:50%; background:var(--amber); left:0%; transform:translateX(-50%); box-shadow:0 0 0 3px var(--bg); pointer-events:none;}
+
+  .section-hint{font-size:11px; color:var(--muted2); margin:0 0 6px;}
+
+  .spectrum-wrap{position:relative; height:220px; touch-action:none;}
+  @media(min-width:700px){ .spectrum-wrap{height:340px;} }
+  #spectrumCanvas{position:absolute; inset:0; width:100%; height:100%; display:block; border-radius:3px;}
+  .tint-layer{position:absolute; inset:0; pointer-events:none;}
+  .tint{position:absolute; top:0; bottom:0; background:var(--accent); opacity:.14;}
+  .create-preview{position:absolute; top:0; bottom:0; background:rgba(255,255,255,.14); border-left:1px dashed rgba(255,255,255,.5); border-right:1px dashed rgba(255,255,255,.5); pointer-events:none;}
+
+  .axis-row{position:relative; height:16px; margin:4px 2px 4px; font-size:10px; font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--muted2);}
+  .axis-row span{position:absolute; transform:translateX(-50%);}
+
+  .band-list{display:flex; flex-direction:column; gap:2px; margin-top:10px;}
+  .band-row{border-left:5px solid var(--accent); padding:12px 0 14px 12px; border-radius:2px;}
+  .band-row:nth-child(odd){background:rgba(255,255,255,.02);}
+  .band-top{display:flex; align-items:center; gap:8px; margin-bottom:8px;}
+  .band-name{flex:1; min-width:0; background:transparent; border:none; border-bottom:1px solid transparent; color:var(--text); font-size:15px; font-weight:700; padding:2px 0;}
+  .band-name:hover, .band-name:focus{border-bottom-color:var(--muted2); outline:none;}
+  .onoff-btn{font-size:10.5px; font-weight:800; padding:5px 10px; border-radius:4px; border:none; background:var(--border); color:var(--muted); letter-spacing:.02em; flex-shrink:0;}
+  .onoff-btn.on{background:var(--accent); color:#111;}
+  .onoff-btn.disabled{opacity:.35; pointer-events:none;}
+  .icon-btn{flex-shrink:0; display:flex; align-items:center; justify-content:center; width:26px; height:26px; border-radius:4px; background:var(--border); border:none; color:var(--muted);}
+  .icon-btn svg{width:12px; height:12px;}
+  .icon-btn:hover{background:#33332e; color:var(--text);}
+  .icon-btn.delete-btn:hover{background:#4a241a; color:#ffbfa0;}
+
+  .band-track{position:relative; height:46px;}
+  .band-track-bg{position:absolute; inset:0; background:#232320; border-radius:4px;}
+  .band-bar{position:absolute; top:0; bottom:0; left:0%; width:10%; background:var(--accent); border-radius:4px; cursor:grab; transition:filter .1s, box-shadow .1s;}
+  .band-bar:active{cursor:grabbing;}
+  .band-handle{position:absolute; top:0; bottom:0; width:24px; cursor:ew-resize; touch-action:none;}
+  .band-handle.low{left:-12px;} .band-handle.high{right:-12px;}
+  .band-handle::after{content:''; position:absolute; top:8px; bottom:8px; left:50%; width:3px; transform:translateX(-50%); background:rgba(0,0,0,.35); border-radius:2px;}
+  .band-tag{position:absolute; top:-2px; font-size:10px; font-weight:800; font-family:ui-monospace,Menlo,Consolas,monospace; color:#111; background:var(--accent); padding:2px 5px; border-radius:3px; white-space:nowrap; transform:translateY(-100%);}
+  .band-tag.low{left:-12px;} .band-tag.high{right:-12px; left:auto;}
+
+  .add-band-btn{width:100%; margin-top:12px; padding:11px; border-radius:3px; border:none; background:var(--panel); color:var(--muted); font-size:12.5px; font-weight:700; display:flex; align-items:center; justify-content:center; gap:7px;}
+  .add-band-btn:hover{color:var(--text); background:#242422;}
+  .add-band-btn svg{width:13px; height:13px;}
+
+  .empty-hint{font-size:12px; color:var(--muted2); text-align:center; padding:18px 8px;}
+</style>
+</head>
+<body>
+<div class="app" id="appWrap">
+  <div class="header">
+    <h1>SPECTRA</h1>
+    <button class="back" id="backBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      戻る
+    </button>
+  </div>
+
+  <div class="toolbar">
+    <button class="tbtn" id="saveProjectBtn">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
+      保存
+    </button>
+    <label class="tbtn btn" for="loadProjectInput">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      読込
+    </label>
+    <input type="file" id="loadProjectInput" accept="application/json">
+  </div>
+
+  <div class="error" id="errorBox">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+    <span id="errorText"></span>
+  </div>
+
+  <div class="picker" id="picker">
+    <button class="option" id="micCard" style="--accent:#5be8c9;">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2M12 19v4M8 23h8"/></svg>
+      <span class="option-text">
+        <span class="option-title">マイクで録音</span>
+        <span class="option-desc">その場で演奏を解析</span>
+      </span>
+    </button>
+    <label class="option btn" id="fileCard" for="fileInput" style="--accent:var(--amber);">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+      <span class="option-text">
+        <span class="option-title">ファイルをアップロード</span>
+        <span class="option-desc">録音済み音源を解析</span>
+      </span>
+    </label>
+    <input type="file" id="fileInput" accept="audio/*">
+  </div>
+
+  <div class="panel" id="panel">
+    <div class="blk transport">
+      <div class="status">
+        <span class="dot" id="statusDot"></span>
+        <span class="statustext" id="statusText"></span>
+      </div>
+      <div class="transport-actions" id="micActions" style="display:none;">
+        <button class="sbtn" id="micStopBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+          停止
+        </button>
+      </div>
+      <div class="transport-actions" id="fileActions" style="display:none;">
+        <button class="sbtn" id="playPauseBtn"></button>
+        <button class="sbtn" id="stopBtn">
+          <svg viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="6" width="12" height="12"/></svg>
+        </button>
+      </div>
+    </div>
+
+    <div class="blk seek-row" id="seekRow">
+      <button class="skip-btn" id="skipBackBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 17V7l-7 5 7 5zM20 17V7l-7 5 7 5z"/></svg>
+        10s
+      </button>
+      <span class="time-text led" id="curTime">0:00</span>
+      <div class="seekbar" id="seekBar">
+        <div class="seekfill" id="seekFill"></div>
+        <div class="seekhandle" id="seekHandle"></div>
+      </div>
+      <span class="time-text led" id="durTime">0:00</span>
+      <button class="skip-btn" id="skipFwdBtn">
+        10s
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 17V7l7 5-7 5zM4 17V7l7 5-7 5z"/></svg>
+      </button>
+    </div>
+
+    <div class="blk">
+      <p class="section-hint">グラフの空いている場所をドラッグ＝新しいパートを作成</p>
+      <div class="spectrum-wrap" id="spectrumWrap">
+        <canvas id="spectrumCanvas"></canvas>
+        <div class="tint-layer" id="tintLayer"></div>
+      </div>
+      <div class="axis-row" id="axisRow"></div>
+
+      <div class="band-list" id="bandList"></div>
+      <button class="add-band-btn" id="addBandBtn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+        パートを追加
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+const FREQ_MIN = 20, FREQ_MAX = 20000;
+const PALETTE = ['#e0644a','#ffb020','#e0b34e','#5be8c9','#6fa8dc','#c07fd6','#8fc95a','#9d8fe0','#e08a6a','#5ecbb0','#c9a25e','#a9c95a'];
+const SNAP_FREQS = [20,25,31,40,50,63,80,100,125,160,200,250,315,400,500,630,800,1000,1250,1600,2000,2500,3150,4000,5000,6300,8000,10000,12500,16000,20000];
+const AXIS_MARKS = [20,50,100,200,500,1000,2000,5000,10000,20000];
+
+let bandIdCounter = 0;
+function makeBand(name, low, high, color){
+  return { id: bandIdCounter++, name, low, high, color, on:true };
+}
+let bandsState = [
+  makeBand('キック/ベース', 20, 100, '#e0644a'),
+  makeBand('ベース/ギター', 100, 300, '#ffb020'),
+  makeBand('ギター/鍵盤',   300, 1000, '#e0b34e'),
+  makeBand('ボーカル/スネア',1000, 3000, '#5be8c9'),
+  makeBand('ボーカル抜け',   3000, 6000, '#6fa8dc'),
+  makeBand('シンバル/HH',    6000, 20000, '#c07fd6'),
+];
+
+const freqToPct = f => 100 * (Math.log10(f/FREQ_MIN) / Math.log10(FREQ_MAX/FREQ_MIN));
+const pctToFreq = p => FREQ_MIN * Math.pow(FREQ_MAX/FREQ_MIN, p/100);
+const fmtHz = f => { f = Math.round(f); return (f >= 1000 ? (Math.round(f/100)/10) + 'k' : f) + 'Hz'; };
+const hexToRgb = hex => { const n = parseInt(hex.replace('#',''),16); return [(n>>16)&255,(n>>8)&255,n&255]; };
+const fmtTime = s => { if(!isFinite(s)||s<0) s=0; const m=Math.floor(s/60), sec=Math.floor(s%60); return `${m}:${sec.toString().padStart(2,'0')}`; };
+function nextColor(){ const used = new Set(bandsState.map(b => b.color)); return PALETTE.find(c => !used.has(c)) || PALETTE[bandsState.length % PALETTE.length]; }
+function snapFreq(freq){
+  let best = SNAP_FREQS[0], bestDist = Infinity;
+  for (const s of SNAP_FREQS) { const d = Math.abs(Math.log(freq) - Math.log(s)); if (d < bestDist) { bestDist = d; best = s; } }
+  return best;
+}
+
+let mode = null;
+let running = false;
+let audioCtx = null, analyser = null, dataArray = null;
+let stream = null, bufferSource = null, audioBuffer = null;
+let startTime = 0, pausedAt = 0, rafId = null;
+let bandAudioNodes = new Map();
+let bandUI = [];
+
+const $ = id => document.getElementById(id);
+const picker = $('picker'), panel = $('panel'), backBtn = $('backBtn');
+const errorBox = $('errorBox'), errorText = $('errorText');
+const statusDot = $('statusDot'), statusText = $('statusText');
+const micActions = $('micActions'), fileActions = $('fileActions');
+const seekRow = $('seekRow'), seekBar = $('seekBar'), seekFill = $('seekFill'), seekHandle = $('seekHandle');
+const curTimeEl = $('curTime'), durTimeEl = $('durTime');
+const spectrumCanvas = $('spectrumCanvas');
+const spectrumWrap = $('spectrumWrap'), tintLayer = $('tintLayer'), axisRow = $('axisRow');
+const bandListEl = $('bandList');
+const playPauseBtn = $('playPauseBtn');
+
+const ICON_PLAY = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><path d="M8 5v14l11-7z"/></svg> 再生';
+const ICON_PAUSE = '<svg viewBox="0 0 24 24" fill="currentColor" style="width:14px;height:14px;"><rect x="6" y="5" width="4" height="14"/><rect x="14" y="5" width="4" height="14"/></svg> 一時停止';
+
+function showError(msg){ errorText.textContent = msg; errorBox.style.display = 'flex'; }
+function clearError(){ errorBox.style.display = 'none'; }
+
+AXIS_MARKS.forEach(f => {
+  const s = document.createElement('span');
+  s.style.left = freqToPct(f) + '%';
+  s.textContent = f >= 1000 ? (f/1000) + 'k' : f;
+  axisRow.appendChild(s);
+});
+
+function wrapPctFromClientX(clientX){
+  const rect = spectrumWrap.getBoundingClientRect();
+  return Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+}
+
+function renderTints(){
+  tintLayer.innerHTML = '';
+  bandsState.forEach(b => {
+    const t = document.createElement('div'); t.className = 'tint';
+    t.style.background = b.color;
+    tintLayer.appendChild(t);
+  });
+}
+
+function renderBands(){
+  bandsState.sort((a,b) => a.low - b.low);
+  bandListEl.innerHTML = '';
+  bandUI = [];
+
+  renderTints();
+
+  if (bandsState.length === 0) {
+    bandListEl.innerHTML = '<div class="empty-hint">パートがありません。「パートを追加」から作成してください。</div>';
+    return;
+  }
+
+  bandsState.forEach((b, idx) => {
+    const row = document.createElement('div'); row.className = 'band-row'; row.style.setProperty('--accent', b.color);
+
+    const top = document.createElement('div'); top.className = 'band-top';
+    const nameInput = document.createElement('input');
+    nameInput.className = 'band-name'; nameInput.value = b.name; nameInput.maxLength = 24;
+    nameInput.addEventListener('input', () => { b.name = nameInput.value; });
+    const onOffBtn = document.createElement('button');
+    onOffBtn.className = 'onoff-btn' + (b.on ? ' on' : '') + (mode !== 'file' ? ' disabled' : '');
+    onOffBtn.textContent = b.on ? 'ON' : 'OFF';
+    onOffBtn.title = '再生に含める/含めない（ファイル再生時のみ）';
+    onOffBtn.addEventListener('click', () => toggleBandOn(b));
+    const deleteBtn = document.createElement('button');
+    deleteBtn.className = 'icon-btn delete-btn'; deleteBtn.title = 'このパートを削除';
+    deleteBtn.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0-1 14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2L4 6"/></svg>';
+    deleteBtn.addEventListener('click', () => deleteBand(b));
+    top.appendChild(nameInput); top.appendChild(onOffBtn); top.appendChild(deleteBtn);
+
+    const track = document.createElement('div'); track.className = 'band-track';
+    const trackBg = document.createElement('div'); trackBg.className = 'band-track-bg';
+    const bar = document.createElement('div'); bar.className = 'band-bar';
+    const lowHandle = document.createElement('div'); lowHandle.className = 'band-handle low';
+    const hiHandle = document.createElement('div'); hiHandle.className = 'band-handle high';
+    const lowTag = document.createElement('div'); lowTag.className = 'band-tag low';
+    const hiTag = document.createElement('div'); hiTag.className = 'band-tag high';
+    bar.appendChild(lowHandle); bar.appendChild(hiHandle); bar.appendChild(lowTag); bar.appendChild(hiTag);
+    track.appendChild(trackBg); track.appendChild(bar);
+
+    row.appendChild(top);
+    row.appendChild(track);
+    bandListEl.appendChild(row);
+
+    const entry = { b, bar, lowTag, hiTag, onOffBtn, tint: tintLayer.children[idx] };
+    bandUI.push(entry);
+
+    lowHandle.addEventListener('pointerdown', (e) => startHandleDrag(e, b, 'low', track, entry));
+    hiHandle.addEventListener('pointerdown', (e) => startHandleDrag(e, b, 'high', track, entry));
+    bar.addEventListener('pointerdown', (e) => {
+      if (e.target === lowHandle || e.target === hiHandle) return;
+      startBarDrag(e, b, track, entry);
+    });
+
+    refreshBand(entry);
+  });
+}
+
+function refreshBand(entry){
+  const { b, bar, lowTag, hiTag, tint } = entry;
+  const p0 = freqToPct(Math.max(b.low, FREQ_MIN));
+  const p1 = freqToPct(Math.min(b.high, FREQ_MAX));
+  bar.style.left = p0 + '%';
+  bar.style.width = Math.max(p1 - p0, 0.6) + '%';
+  lowTag.textContent = fmtHz(b.low);
+  hiTag.textContent = fmtHz(b.high);
+  if (tint) { tint.style.left = p0 + '%'; tint.style.width = Math.max(p1 - p0, 0.4) + '%'; }
+}
+
+function trackPctFromClientX(trackEl, clientX){
+  const rect = trackEl.getBoundingClientRect();
+  return Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+}
+
+function startHandleDrag(e, b, edge, trackEl, entry){
+  e.preventDefault(); e.stopPropagation();
+  e.target.setPointerCapture(e.pointerId);
+  const onMove = (ev) => {
+    const pct = trackPctFromClientX(trackEl, ev.clientX);
+    let freq = snapFreq(pctToFreq(pct));
+    if (edge === 'low') {
+      if (freq >= b.high) { for (let i = SNAP_FREQS.length-1; i>=0; i--) { if (SNAP_FREQS[i] < b.high) { freq = SNAP_FREQS[i]; break; } } }
+      b.low = freq;
+    } else {
+      if (freq <= b.low) { for (let i = 0; i < SNAP_FREQS.length; i++) { if (SNAP_FREQS[i] > b.low) { freq = SNAP_FREQS[i]; break; } } }
+      b.high = freq;
+    }
+    refreshBand(entry);
+    updateBandFilterFreq(b);
+  };
+  const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp, { once:true });
+}
+
+function startBarDrag(e, b, trackEl, entry){
+  e.preventDefault(); e.stopPropagation();
+  e.target.setPointerCapture(e.pointerId);
+  const startPct = trackPctFromClientX(trackEl, e.clientX);
+  const startLowPct = freqToPct(b.low), startHighPct = freqToPct(b.high);
+  const width = startHighPct - startLowPct;
+  const onMove = (ev) => {
+    const curPct = trackPctFromClientX(trackEl, ev.clientX);
+    let delta = curPct - startPct;
+    let newLow = startLowPct + delta, newHigh = startHighPct + delta;
+    if (newLow < 0) { newLow = 0; newHigh = width; }
+    if (newHigh > 100) { newHigh = 100; newLow = 100 - width; }
+    let lo = snapFreq(pctToFreq(newLow)), hi = snapFreq(pctToFreq(newHigh));
+    if (hi <= lo) { const idx = SNAP_FREQS.indexOf(lo); hi = SNAP_FREQS[Math.min(idx+1, SNAP_FREQS.length-1)]; }
+    b.low = lo; b.high = hi;
+    refreshBand(entry);
+    updateBandFilterFreq(b);
+  };
+  const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp, { once:true });
+}
+
+spectrumWrap.addEventListener('pointerdown', (e) => {
+  const startPct = wrapPctFromClientX(e.clientX);
+  let curPct = startPct;
+  const preview = document.createElement('div'); preview.className = 'create-preview';
+  preview.style.left = startPct + '%'; preview.style.width = '0%';
+  spectrumWrap.appendChild(preview);
+  const onMove = (ev) => {
+    curPct = wrapPctFromClientX(ev.clientX);
+    const lo = Math.min(startPct, curPct), hi = Math.max(startPct, curPct);
+    preview.style.left = lo + '%'; preview.style.width = (hi - lo) + '%';
+  };
+  const onUp = () => {
+    window.removeEventListener('pointermove', onMove);
+    window.removeEventListener('pointerup', onUp);
+    preview.remove();
+    const lo = Math.min(startPct, curPct), hi = Math.max(startPct, curPct);
+    if (hi - lo > 1.5) {
+      const loF = snapFreq(pctToFreq(lo)); let hiF = snapFreq(pctToFreq(hi));
+      if (hiF <= loF) hiF = SNAP_FREQS[Math.min(SNAP_FREQS.indexOf(loF)+1, SNAP_FREQS.length-1)];
+      const b = makeBand('新しいパート', loF, hiF, nextColor());
+      bandsState.push(b);
+      ensureBandAudioNode(b);
+      renderBands();
+      setOnOffButtonsEnabled();
+    }
+  };
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp, { once:true });
+});
+
+function addBand(){
+  if (bandsState.length >= 12) { showError('パートは最大12個までです。'); return; }
+  clearError();
+  let idx = 0, maxSpan = -1;
+  bandsState.forEach((b, i) => { const span = Math.log(b.high / b.low); if (span > maxSpan) { maxSpan = span; idx = i; } });
+  const b = bandsState[idx];
+  let mid = snapFreq(Math.sqrt(b.low * b.high));
+  if (mid <= b.low || mid >= b.high) mid = Math.round(Math.sqrt(b.low*b.high));
+  const newBand = makeBand('新しいパート', mid, b.high, nextColor());
+  b.high = mid;
+  bandsState.push(newBand);
+  ensureBandAudioNode(newBand);
+  renderBands();
+  setOnOffButtonsEnabled();
+}
+
+function deleteBand(b){
+  if (bandsState.length <= 1) { showError('パートは最低1つ必要です。'); return; }
+  clearError();
+  const idx = bandsState.indexOf(b);
+  if (idx < 0) return;
+  bandsState.splice(idx, 1);
+  const node = bandAudioNodes.get(b.id);
+  if (node) { try{node.hp.disconnect();}catch(e){} try{node.lp.disconnect();}catch(e){} try{node.gain.disconnect();}catch(e){} bandAudioNodes.delete(b.id); }
+  renderBands();
+}
+
+function toggleBandOn(b){
+  if (mode !== 'file') { showError('パートのON/OFF切替はファイル再生時のみ利用できます。'); return; }
+  clearError();
+  b.on = !b.on;
+  const node = bandAudioNodes.get(b.id);
+  if (node && audioCtx) node.gain.gain.setTargetAtTime(b.on ? 1 : 0, audioCtx.currentTime, 0.015);
+  const entry = bandUI.find(u => u.b === b);
+  if (entry) { entry.onOffBtn.classList.toggle('on', b.on); entry.onOffBtn.textContent = b.on ? 'ON' : 'OFF'; }
+}
+
+function setOnOffButtonsEnabled(){
+  bandUI.forEach(u => u.onOffBtn.classList.toggle('disabled', mode !== 'file'));
+}
+
+function updateBandFilterFreq(b){
+  const node = bandAudioNodes.get(b.id);
+  if (node && audioCtx) {
+    node.hp.frequency.setTargetAtTime(Math.max(b.low, 1), audioCtx.currentTime, 0.01);
+    node.lp.frequency.setTargetAtTime(Math.min(b.high, 22000), audioCtx.currentTime, 0.01);
+  }
+}
+
+function ensureBandAudioNode(b){
+  if (!audioCtx || mode !== 'file' || bandAudioNodes.has(b.id)) return;
+  const hp = audioCtx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = Math.max(b.low, 1);
+  const lp = audioCtx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = Math.min(b.high, 22000);
+  const gain = audioCtx.createGain(); gain.gain.value = b.on ? 1 : 0;
+  hp.connect(lp); lp.connect(gain); gain.connect(audioCtx.destination);
+  bandAudioNodes.set(b.id, { hp, lp, gain });
+  if (bufferSource) { try{ bufferSource.connect(hp); }catch(e){} }
+}
+
+function rebuildBandAudioNodes(){
+  bandAudioNodes.forEach(n => { try{n.hp.disconnect();}catch(e){} try{n.lp.disconnect();}catch(e){} try{n.gain.disconnect();}catch(e){} });
+  bandAudioNodes.clear();
+  if (!audioCtx || mode !== 'file') return;
+  bandsState.forEach(b => ensureBandAudioNode(b));
+}
+
+function resizeCanvas(){
+  const rect = spectrumCanvas.getBoundingClientRect();
+  if (rect.width && rect.height) { spectrumCanvas.width = rect.width; spectrumCanvas.height = rect.height; }
+}
+window.addEventListener('resize', () => { if (mode) resizeCanvas(); });
+
+function stopRaf(){ if (rafId) cancelAnimationFrame(rafId); rafId = null; }
+
+function cleanup(){
+  stopRaf();
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; }
+  if (bufferSource) { try{ bufferSource.stop(); }catch(e){} bufferSource = null; }
+  bandAudioNodes.forEach(n => { try{n.hp.disconnect();}catch(e){} try{n.lp.disconnect();}catch(e){} try{n.gain.disconnect();}catch(e){} });
+  bandAudioNodes.clear();
+  if (audioCtx) { try{ audioCtx.close(); }catch(e){} audioCtx = null; }
+  analyser = null; running = false;
+}
+
+function setupAnalyser(ctx){
+  const a = ctx.createAnalyser();
+  a.fftSize = 4096;
+  a.smoothingTimeConstant = 0.65;
+  analyser = a;
+  dataArray = new Uint8Array(a.frequencyBinCount);
+  return a;
+}
+
+function drawSpectrum(){
+  const ctx2d = spectrumCanvas.getContext('2d');
+  const w = spectrumCanvas.width, h = spectrumCanvas.height;
+  const sampleRate = audioCtx.sampleRate;
+  ctx2d.fillStyle = '#0d0d0c'; ctx2d.fillRect(0,0,w,h);
+  ctx2d.beginPath();
+  let started = false;
+  for (let i = 0; i < dataArray.length; i++) {
+    const freq = (i * sampleRate) / analyser.fftSize;
+    if (freq < FREQ_MIN || freq > FREQ_MAX) continue;
+    const x = (freqToPct(freq)/100) * w;
+    const amp = dataArray[i]/255;
+    const y = h - amp*h;
+    if (!started){ ctx2d.moveTo(x,y); started = true; } else ctx2d.lineTo(x,y);
+  }
+  ctx2d.lineTo(w,h); ctx2d.lineTo(0,h); ctx2d.closePath();
+  const sorted = [...bandsState].sort((a,b) => a.low - b.low);
+  if (sorted.length > 1) {
+    const grad = ctx2d.createLinearGradient(0,0,w,0);
+    sorted.forEach(b => {
+      const p0 = Math.max(0, Math.min(1, freqToPct(Math.max(b.low,FREQ_MIN))/100));
+      const p1 = Math.max(0, Math.min(1, freqToPct(Math.min(b.high,FREQ_MAX))/100));
+      grad.addColorStop(p0, b.color); grad.addColorStop(p1, b.color);
+    });
+    ctx2d.fillStyle = grad;
+  } else if (sorted.length === 1) { ctx2d.fillStyle = sorted[0].color; } else { ctx2d.fillStyle = '#6fa8dc'; }
+  ctx2d.globalAlpha = 0.85;
+  ctx2d.fill();
+  ctx2d.globalAlpha = 1;
+}
+
+function draw(){
+  if (!analyser || !dataArray || !audioCtx) return;
+  analyser.getByteFrequencyData(dataArray);
+  drawSpectrum();
+  if (mode === 'file' && bufferSource && audioBuffer) {
+    const t = audioCtx.currentTime - startTime;
+    const cur = Math.min(t, audioBuffer.duration);
+    curTimeEl.textContent = fmtTime(cur);
+    const pct = audioBuffer.duration ? (cur/audioBuffer.duration)*100 : 0;
+    seekFill.style.width = pct + '%'; seekHandle.style.left = pct + '%';
+    if (t >= audioBuffer.duration) {
+      running = false; pausedAt = 0; stopRaf();
+      playPauseBtn.innerHTML = ICON_PLAY;
+      statusDot.classList.remove('live');
+      return;
+    }
+  }
+  rafId = requestAnimationFrame(draw);
+}
+
+function showPanel(){ picker.style.display = 'none'; panel.style.display = 'flex'; panel.classList.add('active'); backBtn.style.display = 'flex'; resizeCanvas(); setOnOffButtonsEnabled(); }
+function showPicker(){ picker.style.display = 'flex'; panel.style.display = 'none'; panel.classList.remove('active'); backBtn.style.display = 'none'; }
+
+async function startMic(){
+  clearError(); cleanup();
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    setupAnalyser(audioCtx);
+    audioCtx.createMediaStreamSource(stream).connect(analyser);
+    mode = 'mic'; running = true;
+    micActions.style.display = 'flex'; fileActions.style.display = 'none'; seekRow.style.display = 'none';
+    statusText.textContent = 'マイク入力中'; statusDot.classList.add('live');
+    showPanel();
+    draw();
+  } catch (e) {
+    showError('マイクにアクセスできませんでした。ブラウザの権限設定を確認してください。');
+  }
+}
+
+function stopMic(){ cleanup(); statusDot.classList.remove('live'); statusText.textContent = 'マイク停止'; setOnOffButtonsEnabled(); }
+
+async function handleFile(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  clearError(); cleanup();
+  try {
+    const arrayBuffer = await file.arrayBuffer();
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') await audioCtx.resume();
+    audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+    setupAnalyser(audioCtx);
+    mode = 'file';
+    rebuildBandAudioNodes();
+    pausedAt = 0; running = false;
+    durTimeEl.textContent = fmtTime(audioBuffer.duration);
+    curTimeEl.textContent = '0:00';
+    seekFill.style.width = '0%'; seekHandle.style.left = '0%';
+    micActions.style.display = 'none'; fileActions.style.display = 'flex'; seekRow.style.display = 'flex';
+    statusText.textContent = file.name; statusDot.classList.remove('live');
+    playPauseBtn.innerHTML = ICON_PLAY;
+    showPanel();
+  } catch (err) {
+    showError('ファイルを読み込めませんでした。音声ファイル(mp3/wav/m4aなど)を選んでください。');
+  }
+}
+
+function playFrom(offset){
+  if (!audioCtx || !analyser || !audioBuffer) return;
+  if (bufferSource) { try{ bufferSource.stop(); }catch(e){} }
+  const src = audioCtx.createBufferSource();
+  src.buffer = audioBuffer;
+  src.connect(analyser);
+  bandAudioNodes.forEach(n => src.connect(n.hp));
+  src.start(0, offset);
+  bufferSource = src;
+  startTime = audioCtx.currentTime - offset;
+  running = true;
+  statusDot.classList.add('live');
+  playPauseBtn.innerHTML = ICON_PAUSE;
+  draw();
+}
+
+function togglePlay(){
+  if (!audioBuffer) return;
+  if (running) {
+    pausedAt = audioCtx.currentTime - startTime;
+    if (bufferSource) { try{ bufferSource.stop(); }catch(e){} }
+    running = false; stopRaf();
+    statusDot.classList.remove('live');
+    playPauseBtn.innerHTML = ICON_PLAY;
+  } else {
+    playFrom(pausedAt >= audioBuffer.duration ? 0 : pausedAt);
+  }
+}
+
+function stopFile(){
+  if (bufferSource) { try{ bufferSource.stop(); }catch(e){} }
+  pausedAt = 0; running = false; stopRaf();
+  curTimeEl.textContent = '0:00'; seekFill.style.width = '0%'; seekHandle.style.left = '0%';
+  statusDot.classList.remove('live');
+  playPauseBtn.innerHTML = ICON_PLAY;
+}
+
+function seekTo(t){
+  if (!audioBuffer) return;
+  t = Math.max(0, Math.min(t, audioBuffer.duration));
+  if (running) { playFrom(t); }
+  else {
+    pausedAt = t;
+    curTimeEl.textContent = fmtTime(t);
+    const pct = audioBuffer.duration ? (t/audioBuffer.duration)*100 : 0;
+    seekFill.style.width = pct + '%'; seekHandle.style.left = pct + '%';
+  }
+}
+function currentPlayTime(){ if (!audioBuffer) return 0; return running ? (audioCtx.currentTime - startTime) : pausedAt; }
+function scrubFromEvent(clientX){
+  const rect = seekBar.getBoundingClientRect();
+  const pct = Math.max(0, Math.min(1, (clientX - rect.left) / rect.width));
+  seekTo(pct * (audioBuffer ? audioBuffer.duration : 0));
+}
+seekBar.addEventListener('pointerdown', (e) => {
+  if (!audioBuffer) return;
+  seekBar.setPointerCapture(e.pointerId);
+  scrubFromEvent(e.clientX);
+  const onMove = (ev) => scrubFromEvent(ev.clientX);
+  const onUp = () => { window.removeEventListener('pointermove', onMove); window.removeEventListener('pointerup', onUp); };
+  window.addEventListener('pointermove', onMove);
+  window.addEventListener('pointerup', onUp, { once:true });
+});
+$('skipBackBtn').addEventListener('click', () => seekTo(currentPlayTime() - 10));
+$('skipFwdBtn').addEventListener('click', () => seekTo(currentPlayTime() + 10));
+
+function backToStart(){
+  cleanup();
+  mode = null;
+  clearError();
+  showPicker();
+}
+
+function saveProject(){
+  const data = { version: 5, bands: bandsState.map(b => ({ name: b.name, low: b.low, high: b.high, color: b.color, on: b.on })) };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `spectra-project-${Date.now()}.json`;
+  document.body.appendChild(a); a.click(); a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function loadProject(e){
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data.bands) || data.bands.length === 0) throw new Error('invalid');
+      bandsState = data.bands.map(b => {
+        const nb = makeBand(
+          typeof b.name === 'string' ? b.name : 'パート',
+          typeof b.low === 'number' ? b.low : 20,
+          typeof b.high === 'number' ? b.high : 20000,
+          typeof b.color === 'string' ? b.color : nextColor()
+        );
+        if (typeof b.on === 'boolean') nb.on = b.on;
+        return nb;
+      });
+      rebuildBandAudioNodes();
+      renderBands();
+      setOnOffButtonsEnabled();
+      clearError();
+    } catch (err) {
+      showError('プロジェクトファイルを読み込めませんでした。SPECTRAで保存したJSONファイルを選んでください。');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+}
+
+$('micCard').addEventListener('click', startMic);
+$('fileInput').addEventListener('change', handleFile);
+$('micStopBtn').addEventListener('click', stopMic);
+playPauseBtn.addEventListener('click', togglePlay);
+$('stopBtn').addEventListener('click', stopFile);
+backBtn.addEventListener('click', backToStart);
+$('saveProjectBtn').addEventListener('click', saveProject);
+$('loadProjectInput').addEventListener('change', loadProject);
+$('addBandBtn').addEventListener('click', addBand);
+
+renderBands();
+showPicker();
+</script>
+</body>
+</html>
